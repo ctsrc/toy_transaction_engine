@@ -21,6 +21,8 @@
 //!
 //! - Erik N., Wednesday April 13th 2022
 
+use clap::Parser;
+
 /// Data structures and logic used for input of CSV data.
 ///
 /// While it's not strictly necessary to organize this part of the code into
@@ -32,6 +34,8 @@
 /// of the command line program itself, but it is very much secondary to the
 /// actual transaction processing.
 mod csv_input {
+    use serde::Deserialize;
+
     use crate::tx_processing::{ClientId, TransactionId};
 
     /// Transaction record as it appears in CSV inputs.
@@ -42,9 +46,13 @@ mod csv_input {
     /// The data in this struct is further transformed into structs for the specific
     /// type of transaction that it describes before processing of the transaction itself
     /// takes place.
-    struct TransactionCSVRecord<'a> {
+    #[derive(Deserialize, Debug)]
+    pub(crate) struct TransactionCSVRecord<'a> {
+        #[serde(rename = "type")]
         transaction_type: TransactionType,
+        #[serde(rename = "client")]
         client_id: ClientId,
+        #[serde(rename = "tx")]
         tx_id: TransactionId,
         /// The amount, where applicable, for the transaction.
         ///
@@ -58,6 +66,8 @@ mod csv_input {
     }
 
     /// The different transaction types that a [TransactionCSVRecord] entry can have.
+    #[derive(Deserialize, Debug)]
+    #[serde(rename_all = "snake_case")]
     enum TransactionType {
         Deposit,
         Withdrawal,
@@ -69,6 +79,25 @@ mod csv_input {
 
 pub mod tx_processing;
 
-fn main() {
-    println!("Hello, world!");
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Args {
+    csv_input_file: String,
+}
+
+fn main () -> anyhow::Result<()>
+{
+    let args = Args::parse();
+
+    let mut rdr = csv::ReaderBuilder::new()
+      .trim(csv::Trim::All)
+      .from_path(args.csv_input_file)?;
+    let mut raw_record = csv::StringRecord::new();
+    let headers = rdr.headers()?.clone();
+    while rdr.read_record(&mut raw_record)? {
+        let record: csv_input::TransactionCSVRecord = raw_record.deserialize(Some(&headers))?;
+        println!("{:?}", record);
+    }
+
+    Ok(())
 }

@@ -17,10 +17,14 @@
 //! all kinds of interaction between the transaction processing and other
 //! systems, and things would quickly become much more complex.
 
+use serde::Deserialize;
+
 /// Client ID is represented by u16 integer as per spec.
+#[derive(Deserialize, Debug)]
 pub(crate) struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
+#[derive(Deserialize, Debug)]
 pub(crate) struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
