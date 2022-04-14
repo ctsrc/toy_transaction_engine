@@ -9,6 +9,9 @@ In this toy transaction engine I am making some assumptions:
 3. Deposits and withdrawals are transactions between the system and an external
    party such as for example a bank.
 4. Users can dispute deposits, but they cannot dispute withdrawals.
+5. A frozen account cannot withdraw money.
+6. A frozen account is still able to deposit money.
+7. A frozen account is also still able to dispute, resolve and chargeback.
 
 Assumption 4 requires some explanation: According to the spec, the dispute process
 goes transaction -> dispute -> resolve -> chargeback. The chargeback, which is the
@@ -33,6 +36,11 @@ documentation to read such comments.
 As a consequence of our assumption that withdrawals cannot be disputed, we can
 "forget" the withdrawal transaction as soon as we have processed it.
 
+If a withdrawal attempts to withdraw more than the available amount, then
+we return an error indicating that this is not allowed.
+
+If the account is currently frozen then we return an error indicating this.
+
 #### Deposits
 
 We need to remember deposits for a while -- potentially "forever" -- as they could
@@ -51,6 +59,10 @@ If the client id of the user submitting the dispute does not match the client id
 of the user that created the transaction then we consider the dispute to be not valid.
 This situation is handled for us when we look for the transaction as we include
 the user id in the key that we look up transaction by.
+
+A dispute for a past deposit can result in negative available balance on the account,
+if there have been withdrawals or disputes since the time at which the deposit was made.
+This is fine and expected.
 
 #### Resolves
 
@@ -79,6 +91,10 @@ we don't need to have an error type for a situation where transaction does not e
 
 (As with disputes and resolves, user id must match, and is handled because we include the user id
 in the key that we look up dispute by.)
+
+When the chargeback is processed, the total funds can become negative. This is expected.
+I guess that is part of the reason why the spec says to freeze the account of the user
+after processing a chargeback.
 
 ### Correctness
 
