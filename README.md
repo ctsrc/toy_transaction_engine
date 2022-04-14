@@ -2,7 +2,7 @@
 
 ## Assumptions
 
-In this toy transaction engine I am making some assumptions:
+In addition to the assumptions listed in the spec, I am making some further assumptions:
 
 1. We are not required to keep a record of the individual transactions themselves.
 2. We are not required to keep a record of the individual results of the individual transactions.
