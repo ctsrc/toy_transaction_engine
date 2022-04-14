@@ -1,5 +1,12 @@
 # Toy Transaction Engine
 
+This is an implementation of a toy transaction engine according to a specification
+that was handed to me by someone for implementation.
+
+The spec itself is not public. And at the time of this writing neither is this repository,
+as I was not sure if I should make the repository public or not. Waiting to hear back
+on whether I should make the repository public or not.
+
 ## Assumptions
 
 In addition to the assumptions listed in the spec, I am making some further assumptions:
