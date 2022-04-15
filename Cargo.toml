@@ -7,5 +7,6 @@ edition = "2021"
 anyhow = "1.0.56"
 clap = { version = "3.1.8", features = ["derive"] }
 csv = "1.1.6"
+derive_more = "0.99.17"
 serde = { version = "1.0.136", features = ["derive"] }
 thiserror = "1.0.30"

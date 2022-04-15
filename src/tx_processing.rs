@@ -19,22 +19,62 @@
 
 use std::collections::HashMap;
 
+use derive_more::{Add, Display};
 use serde::Deserialize;
 use thiserror::Error;
 
 /// Client ID is represented by u16 integer as per spec.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Display)]
 pub(crate) struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Display)]
 pub(crate) struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
 /// and outputs. Therefore, we represent the amount internally as integer fractional
-/// amounts of 1/1000ths of the i/o amount unit.
-#[derive(Debug)]
+/// amounts of 1/10000ths of the i/o amount unit.
+#[derive(Debug, Add)]
 pub(crate) struct FractionalAmount(u64);
+
+impl TryInto<FractionalAmount> for &str {
+  type Error = FractionalAmountParseError;
+  fn try_into (self) -> Result<FractionalAmount, Self::Error>
+  {
+    let mut splitter = self.splitn(2, ".");
+    // XXX: The unwrap below is fine because even with an empty string,
+    //      the first call to next() will return Some(&str).
+    let decimal_portion = splitter.next().unwrap();
+    let decimal_portion_amount = decimal_portion.parse::<u64>()
+      .map_err(|e| FractionalAmountParseError::DecimalPortionParseIntError(e))?;
+    let mut fractional_portion_amount = 0;
+    if let Some(fractional_portion) = splitter.next() {
+      let mut magnitude = 1_000;
+      for digit in fractional_portion.chars() {
+        let digit = digit.to_digit(10).ok_or(FractionalAmountParseError::NonDigitInFractionalPortion)? as u64;
+        if magnitude > 1 {
+          fractional_portion_amount += digit * magnitude;
+          magnitude /= 10;
+        } else if magnitude == 1 {
+          fractional_portion_amount += digit;
+          magnitude = 0;
+        }
+        // XXX: After we finish reading the up to 4 digits that we care about
+        //      in terms of precision, we do not break out of the loop. The reason for this
+        //      is that we still want to ensure that all remaining characters are digits.
+      }
+    };
+    Ok(FractionalAmount(decimal_portion_amount * 10_000 + fractional_portion_amount))
+  }
+}
+
+#[derive(Error, Debug)]
+pub(crate) enum FractionalAmountParseError {
+  #[error("Failed to parse decimal portion of amount")]
+  DecimalPortionParseIntError(#[from] std::num::ParseIntError),
+  #[error("Non-digit in fractional portion of amount")]
+  NonDigitInFractionalPortion,
+}
 
 /// Contains the account data for a single user.
 #[derive(Debug)]
@@ -53,7 +93,7 @@ pub(crate) struct TransactionProcessor {
   ///
   /// When a transaction is disputed by the user, we remove the transaction from the
   /// collection of deposit transactions and put an entry for the transaction
-  /// in the collection of disputed transactions, [DisputeTransactions], instead.
+  /// in the collection of disputed transactions instead.
   ///
   /// A transaction is put back into the collection of deposit transactions
   /// if the transaction is subsequently resolved after having been disputed.
@@ -66,11 +106,13 @@ pub(crate) struct TransactionProcessor {
   /// Contains dispute transactions we have seen and which we are holding onto until,
   /// if ever, they either get resolved or charged back.
   ///
-  /// See also [DepositTransactions] for details about what happens to a transaction
-  /// after it has been disputed and then it has either been resolved or charged back.
+  /// See also the description on the deposit transactions field for details about
+  /// what happens to a transaction after it has been disputed and then it has
+  /// either been resolved or charged back.
   dispute_transactions: HashMap<(ClientId, TransactionId), FractionalAmount>,
 }
 
+/// Processes deposit, withdraw, dispute, resolve and chargeback transactions.
 impl TransactionProcessor {
   pub(crate) fn new () -> Self
   {
@@ -81,26 +123,26 @@ impl TransactionProcessor {
     }
   }
   /// Credit to client's account.
-  pub(crate) fn deposit (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount)
+  pub(crate) fn deposit (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount)
   {
   }
   /// Debit to client's account.
-  pub(crate) fn withdraw (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
+  pub(crate) fn withdraw (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
   {
     Ok(())
   }
   /// Claim that referenced transaction was erroneous and should be reversed.
-  pub(crate) fn dispute (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionDisputeError>
+  pub(crate) fn dispute (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionDisputeError>
   {
     Ok(())
   }
   /// A resolution to a dispute.
-  pub(crate) fn resolve (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionResolveError>
+  pub(crate) fn resolve (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionResolveError>
   {
     Ok(())
   }
   /// Final state of a dispute.
-  pub(crate) fn chargeback (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionChargebackError>
+  pub(crate) fn chargeback (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionChargebackError>
   {
     Ok(())
   }

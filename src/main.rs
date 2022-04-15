@@ -13,100 +13,69 @@
 //! Be sure to check out the main readme file in the repository as well. Said readme has
 //! some high-level details about the implementation.
 //!
-//! The code in the main file for the command line application deals mainly with
-//! input and output of CSV data, as well as setting things up for transaction processing
-//! and handing data over for transaction processing.
+//! Input of CSV data is handled in the [csv_input] module.
 //!
-//! The transaction processing itself happens in the [crate::tx_processing] module.
+//! The transaction processing itself happens in the [tx_processing] module.
+//!
+//! The code in the main file connects these modules together.
 //!
 //! - Erik N., Wednesday April 13th 2022
 
 use clap::Parser;
-
-/// Data structures and logic used for input of CSV data.
-///
-/// While it's not strictly necessary to organize this part of the code into
-/// a separate module from the main function of the command line program,
-/// I find it useful to do so in this case because the generated HTML documentation
-/// output by `cargo doc` is then also more structured for anyone reading it.
-///
-/// In particular, input (and output) of CSV data, is important to the functioning
-/// of the command line program itself, but it is very much secondary to the
-/// actual transaction processing.
-mod csv_input {
-    use serde::Deserialize;
-
-    use crate::tx_processing::{ClientId, TransactionId};
-
-    /// Transaction record as it appears in CSV inputs.
-    ///
-    /// We use this struct in the initial stage of transaction processing
-    /// where we are reading a transaction record from CSV data.
-    ///
-    /// The data in this struct is further transformed into structs for the specific
-    /// type of transaction that it describes before processing of the transaction itself
-    /// takes place.
-    #[derive(Deserialize, Debug)]
-    pub(crate) struct TransactionCSVRecord<'a> {
-        #[serde(rename = "type")]
-        transaction_type: TransactionType,
-        #[serde(rename = "client")]
-        client_id: ClientId,
-        #[serde(rename = "tx")]
-        tx_id: TransactionId,
-        /// The amount, where applicable, for the transaction.
-        ///
-        /// At the stage of reading the CSV record data we are not yet parsing
-        /// the amounts into our [crate::tx_processing::TransactionAmount] type.
-        ///
-        /// We borrow the string for this field from the CSV reader, as opposed
-        /// to using owned String, as the latter would cause additional allocation
-        /// for data that we only need for a short amount of time anyways.
-        amount: Option<&'a str>,
-    }
-
-    /// The different transaction types that a [TransactionCSVRecord] entry can have.
-    #[derive(Deserialize, Debug)]
-    #[serde(rename_all = "snake_case")]
-    enum TransactionType {
-        Deposit,
-        Withdrawal,
-        Dispute,
-        Resolve,
-        Chargeback,
-    }
-}
+use crate::csv_input::Transaction;
 
 pub mod tx_processing;
+pub mod csv_input;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    csv_input_file: String,
+  csv_input_file: String,
 }
 
 fn main () -> anyhow::Result<()>
 {
-    let args = Args::parse();
-    let final_account_data = process_transactions_from_csv(args.csv_input_file)?;
-    for acc in final_account_data {
-        println!("{:?}", acc);
+  let args = Args::parse();
+  let csv_parser: csv_input::CSVInputParser = args.csv_input_file.try_into()?;
+  let mut transaction_processor = tx_processing::TransactionProcessor::new();
+  for tx_result in csv_parser {
+    eprintln!("{:?}", tx_result);
+    // XXX: We consider failures in CSV parsing to be fatal.
+    let (client_id, transaction_id, tx) = tx_result?;
+    // XXX: Transactions themselves are allowed to error as per spec.
+    //      Errors in transactions themselves are logged to stderr
+    //      and processing continues.
+    match tx {
+      Transaction::Deposit(amount) => transaction_processor.deposit(&client_id, &transaction_id, amount),
+      Transaction::Withdrawal(amount) => {
+        let tx_result = transaction_processor.withdraw(&client_id, &transaction_id, amount);
+        if let Err(e) = tx_result {
+          eprintln!("Error during processing of tx {} for client {}: {:?}", transaction_id, client_id, e);
+        }
+      },
+      Transaction::Dispute => {
+        let tx_result = transaction_processor.dispute(&client_id, &transaction_id);
+        if let Err(e) = tx_result {
+          eprintln!("Error during processing of dispute for tx {} for client {}: {:?}", transaction_id, client_id, e);
+        }
+      },
+      Transaction::Resolve => {
+        let tx_result = transaction_processor.resolve(&client_id, &transaction_id);
+        if let Err(e) = tx_result {
+          eprintln!("Error during processing of resolve for tx {} for client {}: {:?}", transaction_id, client_id, e);
+        }
+      },
+      Transaction::Chargeback => {
+        let tx_result = transaction_processor.chargeback(&client_id, &transaction_id);
+        if let Err(e) = tx_result {
+          eprintln!("Error during processing of chargeback for tx {} for client {}: {:?}", transaction_id, client_id, e);
+        }
+      },
     }
-    Ok(())
-}
-
-fn process_transactions_from_csv<P: AsRef<std::path::Path>> (path: P) -> anyhow::Result<crate::tx_processing::Accounts>
-{
-    let transaction_processor = crate::tx_processing::TransactionProcessor::new();
-
-    let mut rdr = csv::ReaderBuilder::new()
-    .trim(csv::Trim::All)
-    .from_path(path)?;
-    let mut raw_record = csv::StringRecord::new();
-    let headers = rdr.headers()?.clone();
-    while rdr.read_record(&mut raw_record)? {
-        let record: csv_input::TransactionCSVRecord = raw_record.deserialize(Some(&headers))?;
-    }
-
-    Ok(transaction_processor.into())
+  }
+  let final_account_data: tx_processing::Accounts = transaction_processor.into();
+  for (client_id, account) in final_account_data {
+    println!("{} {:?}", client_id, account);
+  }
+  Ok(())
 }
