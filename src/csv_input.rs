@@ -3,7 +3,7 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::tx_processing::{ClientId, TransactionId, FractionalAmount};
+use crate::transaction_engine::{ClientId, TransactionId, FractionalAmount};
 
 /// Transaction record as it appears in CSV inputs.
 ///
@@ -156,7 +156,7 @@ pub(crate) enum CSVInputParserError {
   #[error("Deposit must specify amount")]
   DepositMustSpecifyAmount,
   #[error("Failed to parse amount")]
-  AmountParseError(#[from] crate::tx_processing::FractionalAmountParseError),
+  AmountParseError(#[from] crate::transaction_engine::FractionalAmountParseError),
   #[error("Withdrawal must specify amount")]
   WithdrawalMustSpecifyAmount,
   #[error("Dispute cannot specify amount")]

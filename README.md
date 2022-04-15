@@ -62,8 +62,8 @@ For more details about the implementation please see also the comments
 throughout the source code itself.
 
 Note also that where applicable, comments in the source are doc comments, so that
-you can also run `cargo doc --open` in the repo root and browse the generated
-documentation to read such comments.
+you can also run `cargo doc --open --bin toy_transaction_engine_command`
+in the repo root and browse the generated documentation to read such comments.
 
 ### Handling of cases
 

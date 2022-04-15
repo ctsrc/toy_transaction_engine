@@ -16,26 +16,66 @@
 //! Going further beyond the toy spec, there would certainly need to be
 //! all kinds of interaction between the transaction processing and other
 //! systems, and things would quickly become much more complex.
+//!
+//! ## Examples of using this module
+//!
+//! The following shows some basic examples of processing transactions
+//! using this module.
+//!
+//! These examples run as doc tests with `cargo test`.
+//!
+//! In these examples, unwrap is used in order to keep the code short
+//! and also because we want the doc tests to fail except where the
+//! point is to show that invalid transactions are not accepted.
+//!
+//! ### Deposits and withdrawals
+//!
+//! ```
+//! use transaction_engine::{TransactionProcessor, ClientId, TransactionId, Accounts};
+//!
+//! let mut transaction_processor = TransactionProcessor::new();
+//! let client_a = ClientId::from(1u16);
+//! let amount_1 = "1.5000000000001".try_into().unwrap();
+//! let tx_1 = TransactionId::from(1u32);
+//!
+//! let tx_2 = TransactionId::from(2u32);
+//! // XXX: Precision of fractional part is four digits as per spec.
+//! //      Fifth digit and onwards will be "chopped off", without rounding.
+//! //
+//! //      In other words, the following are all equivalent:
+//! //
+//! //let amount_2 = "0.25".try_into().unwrap();
+//! //let amount_2 = "0.2500".try_into().unwrap();
+//! //let amount_2 = "0.250099999999999999999999".try_into().unwrap();
+//! let amount_2 = "0.25009".try_into().unwrap();
+//!
+//! transaction_processor.deposit(&client_a, &tx_1, amount_1);
+//! transaction_processor.withdraw(&client_a, &tx_2, amount_2);
+//!
+//! let accounts: Accounts = transaction_processor.into();
+//!
+//! assert!(accounts.len() == 1);
+//! ```
 
 use std::collections::HashMap;
 
-use derive_more::{Add, Display};
+use derive_more::{Add, Display, From};
 use serde::Deserialize;
 use thiserror::Error;
 
 /// Client ID is represented by u16 integer as per spec.
-#[derive(Deserialize, Debug, Display)]
-pub(crate) struct ClientId(u16);
+#[derive(Deserialize, Debug, Display, From)]
+pub struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
-#[derive(Deserialize, Debug, Display)]
-pub(crate) struct TransactionId(u32);
+#[derive(Deserialize, Debug, Display, From)]
+pub struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
 /// and outputs. Therefore, we represent the amount internally as integer fractional
 /// amounts of 1/10000ths of the i/o amount unit.
-#[derive(Debug, Add)]
-pub(crate) struct FractionalAmount(u64);
+#[derive(Debug, Add, From)]
+pub struct FractionalAmount(u64);
 
 impl TryInto<FractionalAmount> for &str {
   type Error = FractionalAmountParseError;
@@ -70,7 +110,7 @@ impl TryInto<FractionalAmount> for &str {
 
 /// Errors returned for [TryInto::try_into]::<[FractionalAmount]> on &[str].
 #[derive(Error, Debug)]
-pub(crate) enum FractionalAmountParseError {
+pub enum FractionalAmountParseError {
   #[error("Failed to parse decimal portion of amount")]
   DecimalPortionParseIntError(#[from] std::num::ParseIntError),
   #[error("Non-digit in fractional portion of amount")]
@@ -79,17 +119,17 @@ pub(crate) enum FractionalAmountParseError {
 
 /// Contains the account data for a single user.
 #[derive(Debug)]
-pub(crate) struct Account {
+pub struct Account {
   available_amount: FractionalAmount,
   held_amount: FractionalAmount,
 }
 
 /// Contains the accounts of all users for which we have processed valid transactions.
-pub(crate) type Accounts = HashMap<ClientId, Account>;
+pub type Accounts = HashMap<ClientId, Account>;
 
 /// Processes transactions and provides final balances for accounts for which
 /// transactions have been processed.
-pub(crate) struct TransactionProcessor {
+pub struct TransactionProcessor {
   accounts: Accounts,
   /// Contains deposit transactions we have seen and which we are holding onto until,
   /// if ever, they get disputed.
@@ -117,7 +157,7 @@ pub(crate) struct TransactionProcessor {
 
 /// Processes deposit, withdraw, dispute, resolve and chargeback transactions.
 impl TransactionProcessor {
-  pub(crate) fn new () -> Self
+  pub fn new () -> Self
   {
     Self {
       accounts: Default::default(),
@@ -126,26 +166,26 @@ impl TransactionProcessor {
     }
   }
   /// Credit to client's account.
-  pub(crate) fn deposit (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount)
+  pub fn deposit (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount)
   {
   }
   /// Debit to client's account.
-  pub(crate) fn withdraw (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
+  pub fn withdraw (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
   {
     Ok(())
   }
   /// Claim that referenced transaction was erroneous and should be reversed.
-  pub(crate) fn dispute (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionDisputeError>
+  pub fn dispute (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionDisputeError>
   {
     Ok(())
   }
   /// A resolution to a dispute.
-  pub(crate) fn resolve (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionResolveError>
+  pub fn resolve (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionResolveError>
   {
     Ok(())
   }
   /// Final state of a dispute.
-  pub(crate) fn chargeback (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionChargebackError>
+  pub fn chargeback (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionChargebackError>
   {
     Ok(())
   }

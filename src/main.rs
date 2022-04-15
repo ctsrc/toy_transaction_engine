@@ -15,7 +15,7 @@
 //!
 //! Input of CSV data is handled in the [csv_input] module.
 //!
-//! The transaction processing itself happens in the [tx_processing] module.
+//! The transaction processing itself happens in the [transaction_engine] module.
 //!
 //! The code in the main file connects these modules together.
 //!
@@ -24,7 +24,7 @@
 use clap::Parser;
 use crate::csv_input::Transaction;
 
-pub mod tx_processing;
+pub mod transaction_engine;
 pub mod csv_input;
 
 #[derive(Parser)]
@@ -37,7 +37,7 @@ fn main () -> anyhow::Result<()>
 {
   let args = Args::parse();
   let csv_parser: csv_input::CSVInputParser = args.csv_input_file.try_into()?;
-  let mut transaction_processor = tx_processing::TransactionProcessor::new();
+  let mut transaction_processor = transaction_engine::TransactionProcessor::new();
   for tx_result in csv_parser {
     eprintln!("{:?}", tx_result);
     // XXX: We consider failures in CSV parsing to be fatal.
@@ -73,7 +73,7 @@ fn main () -> anyhow::Result<()>
       },
     }
   }
-  let final_account_data: tx_processing::Accounts = transaction_processor.into();
+  let final_account_data: transaction_engine::Accounts = transaction_processor.into();
   for (client_id, account) in final_account_data {
     println!("{} {:?}", client_id, account);
   }
