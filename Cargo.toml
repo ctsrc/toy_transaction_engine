@@ -1,5 +1,5 @@
 [package]
-name = "toy_transactions_engine"
+name = "toy_transaction_engine"
 version = "0.1.0"
 edition = "2021"
 

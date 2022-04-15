@@ -266,7 +266,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
 
 [[package]]
-name = "toy_transactions_engine"
+name = "toy_transaction_engine"
 version = "0.1.0"
 dependencies = [
  "anyhow",
