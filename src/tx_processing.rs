@@ -68,6 +68,7 @@ impl TryInto<FractionalAmount> for &str {
   }
 }
 
+/// Errors returned for [TryInto::try_into]::<[FractionalAmount]> on &[str].
 #[derive(Error, Debug)]
 pub(crate) enum FractionalAmountParseError {
   #[error("Failed to parse decimal portion of amount")]
@@ -86,6 +87,8 @@ pub(crate) struct Account {
 /// Contains the accounts of all users for which we have processed valid transactions.
 pub(crate) type Accounts = HashMap<ClientId, Account>;
 
+/// Processes transactions and provides final balances for accounts for which
+/// transactions have been processed.
 pub(crate) struct TransactionProcessor {
   accounts: Accounts,
   /// Contains deposit transactions we have seen and which we are holding onto until,
@@ -156,18 +159,22 @@ impl Into<Accounts> for TransactionProcessor {
   }
 }
 
+/// Errors returned by [TransactionProcessor::withdraw].
 #[derive(Error, Debug)]
 pub enum TransactionWithdrawError {
 }
 
+/// Errors returned by [TransactionProcessor::dispute].
 #[derive(Error, Debug)]
 pub enum TransactionDisputeError {
 }
 
+/// Errors returned by [TransactionProcessor::resolve].
 #[derive(Error, Debug)]
 pub enum TransactionResolveError {
 }
 
+/// Errors returned by [TransactionProcessor::chargeback].
 #[derive(Error, Debug)]
 pub enum TransactionChargebackError {
 }

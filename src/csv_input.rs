@@ -78,6 +78,7 @@ impl TryInto<CSVInputParser> for String {
 }
 
 impl CSVInputParser {
+  /// Parses a raw CSV record into a transaction.
   pub(crate) fn parse_raw_record(&self, raw_record: csv::StringRecord) -> Result<(ClientId, TransactionId, Transaction), CSVInputParserError> {
     let record = raw_record.deserialize::<TransactionCSVRecord>(Some(&self.headers)).map_err(|e| CSVInputParserError::Csv(e))?;
     let transaction = match record.transaction_type {
@@ -135,6 +136,7 @@ impl Iterator for CSVInputParser {
   }
 }
 
+/// Transaction type and, in the case of deposits and withdrawals, the amount for the transaction.
 #[derive(Debug)]
 pub(crate) enum Transaction {
   Deposit(FractionalAmount),
@@ -144,6 +146,9 @@ pub(crate) enum Transaction {
   Chargeback,
 }
 
+/// Errors returned by [CSVInputParser::parse_raw_record] and
+/// also forwarded by [CSVInputParser::next] inside of the [Option]
+/// returned by the latter.
 #[derive(Error, Debug)]
 pub(crate) enum CSVInputParserError {
   #[error("CSV error")]
