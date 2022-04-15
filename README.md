@@ -3,9 +3,7 @@
 This is an implementation of a toy transaction engine according to a specification
 that was handed to me by someone for implementation.
 
-The spec itself is not public. And at the time of this writing neither is this repository,
-as I was not sure if I should make the repository public or not. Waiting to hear back
-on whether I should make the repository public or not.
+The spec itself is not public, but I was told to make the repository public.
 
 ## Assumptions
 
