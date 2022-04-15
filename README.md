@@ -5,6 +5,38 @@ that was handed to me by someone for implementation.
 
 The spec itself is not public, but I was told to make the repository public.
 
+## Usage example
+
+The toy transaction engine is implemented in Rust. It takes a single argument,
+which is the path to a CSV file containing transactions. The program writes
+its output in CSV format to `stdout`.
+
+In order to build and run the program you need to have the Rust toolchain
+installed. Install the Rust toolchain from https://rustup.rs/ and ensure
+that `cargo` is in your `$PATH`.
+
+An example of using the program is given below, using a sample CSV input
+file that is included in the repository root. This sample data is from
+the spec, and I was told that it was ok to include sample data from
+the spec as long as I documented the fact that I have done so.
+
+```zsh
+cargo run -- transactions.csv > accounts.csv
+```
+
+The resulting output redirected to `accounts.csv` from the command above
+will look like the following once the implementation of the program
+is complete.
+
+```csv
+client,available,held,total,locked
+2,2,0,2,false
+1,1.5,0,1.5,false
+```
+
+Note that as per the spec, the rows of data in the output is
+not guaranteed to be in any particular order.
+
 ## Assumptions
 
 In addition to the assumptions listed in the spec, I am making some further assumptions:
