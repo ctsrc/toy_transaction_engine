@@ -73,10 +73,18 @@ pub struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
 /// and outputs. Therefore, we represent the amount internally as integer fractional
-/// amounts of 1/10000ths of the i/o amount unit.
+/// amounts of 1/10,000ths (one ten thousands) of the i/o amount unit.
 #[derive(Debug, Add, From)]
 pub struct FractionalAmount(u64);
 
+/// Turns a string like `"321.54689498498549"` into a [FractionalAmount]
+/// with 4 digits of precision for fractional portion as per spec.
+///
+/// In the case of a string like `"321.54689498498549"`, the value of
+/// the [FractionalAmount] will be `3215468`.
+///
+/// The full string is read in order to ensure that no non-digits
+/// are present in the input.
 impl TryInto<FractionalAmount> for &str {
   type Error = FractionalAmountParseError;
   fn try_into (self) -> Result<FractionalAmount, Self::Error>
