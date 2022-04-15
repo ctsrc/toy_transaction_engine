@@ -7,9 +7,8 @@ The spec itself is not public, but I was told to make the repository public.
 
 ## Usage example
 
-The toy transaction engine is implemented in Rust. It takes a single argument,
-which is the path to a CSV file containing transactions. The program writes
-its output in CSV format to `stdout`.
+The toy transaction engine takes a single argument, which is the path to a CSV file
+containing transactions. The program writes its output in CSV format to `stdout`.
 
 In order to build and run the program you need to have the Rust toolchain
 installed. Install the Rust toolchain from https://rustup.rs/ and ensure
