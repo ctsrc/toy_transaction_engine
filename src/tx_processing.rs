@@ -17,7 +17,10 @@
 //! all kinds of interaction between the transaction processing and other
 //! systems, and things would quickly become much more complex.
 
+use std::collections::HashMap;
+
 use serde::Deserialize;
+use thiserror::Error;
 
 /// Client ID is represented by u16 integer as per spec.
 #[derive(Deserialize, Debug)]
@@ -28,27 +31,101 @@ pub(crate) struct ClientId(u16);
 pub(crate) struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
-/// and outputs. Therefore, we represent the amount internally as integer amounts
-/// of 1/1000ths of the i/o amount unit.
-pub(crate) struct TransactionAmount(u64);
+/// and outputs. Therefore, we represent the amount internally as integer fractional
+/// amounts of 1/1000ths of the i/o amount unit.
+#[derive(Debug)]
+pub(crate) struct FractionalAmount(u64);
 
-/// Credit to client's account.
-pub(crate) struct DepositTransaction(TransactionAmount);
-/// Debit to client's account.
-pub(crate) struct WithdrawalTransaction(TransactionAmount);
+/// Contains the account data for a single user.
+#[derive(Debug)]
+pub(crate) struct Account {
+  available_amount: FractionalAmount,
+  held_amount: FractionalAmount,
+}
 
-/// Claim that referenced transaction was erroneous and should be reversed.
-pub(crate) struct DisputeTransaction(TransactionId);
-/// A resolution to a dispute.
-pub(crate) struct ResolveTransaction(TransactionId);
-/// Final state of a dispute.
-pub(crate) struct ChargebackTransaction(TransactionId);
+/// Contains the accounts of all users for which we have processed valid transactions.
+pub(crate) type Accounts = HashMap<ClientId, Account>;
 
-/// All of the possible transaction types.
-pub(crate) enum Transaction {
-  Deposit(DepositTransaction),
-  Withdrawal(WithdrawalTransaction),
-  Dispute(DisputeTransaction),
-  Resolve(ResolveTransaction),
-  Chargeback(ChargebackTransaction),
+pub(crate) struct TransactionProcessor {
+  accounts: Accounts,
+  /// Contains deposit transactions we have seen and which we are holding onto until,
+  /// if ever, they get disputed.
+  ///
+  /// When a transaction is disputed by the user, we remove the transaction from the
+  /// collection of deposit transactions and put an entry for the transaction
+  /// in the collection of disputed transactions, [DisputeTransactions], instead.
+  ///
+  /// A transaction is put back into the collection of deposit transactions
+  /// if the transaction is subsequently resolved after having been disputed.
+  /// This is done in case there are any future disputes about the transaction.
+  ///
+  /// Meanwhile, if the transaction changes state from disputed to charged back,
+  /// then the transaction will not be put back into the deposit transactions
+  /// collection, as
+  deposit_transactions: HashMap<(ClientId, TransactionId), FractionalAmount>,
+  /// Contains dispute transactions we have seen and which we are holding onto until,
+  /// if ever, they either get resolved or charged back.
+  ///
+  /// See also [DepositTransactions] for details about what happens to a transaction
+  /// after it has been disputed and then it has either been resolved or charged back.
+  dispute_transactions: HashMap<(ClientId, TransactionId), FractionalAmount>,
+}
+
+impl TransactionProcessor {
+  pub(crate) fn new () -> Self
+  {
+    Self {
+      accounts: Default::default(),
+      deposit_transactions: Default::default(),
+      dispute_transactions: Default::default()
+    }
+  }
+  /// Credit to client's account.
+  pub(crate) fn deposit (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount)
+  {
+  }
+  /// Debit to client's account.
+  pub(crate) fn withdraw (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
+  {
+    Ok(())
+  }
+  /// Claim that referenced transaction was erroneous and should be reversed.
+  pub(crate) fn dispute (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionDisputeError>
+  {
+    Ok(())
+  }
+  /// A resolution to a dispute.
+  pub(crate) fn resolve (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionResolveError>
+  {
+    Ok(())
+  }
+  /// Final state of a dispute.
+  pub(crate) fn chargeback (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionChargebackError>
+  {
+    Ok(())
+  }
+}
+
+impl Into<Accounts> for TransactionProcessor {
+  /// Consumes self and returns final account data for all accounts
+  /// for which valid transactions have been processed.
+  fn into (self) -> Accounts {
+    self.accounts
+  }
+}
+
+#[derive(Error, Debug)]
+pub enum TransactionWithdrawError {
+}
+
+#[derive(Error, Debug)]
+pub enum TransactionDisputeError {
+}
+
+#[derive(Error, Debug)]
+pub enum TransactionResolveError {
+}
+
+#[derive(Error, Debug)]
+pub enum TransactionChargebackError {
 }

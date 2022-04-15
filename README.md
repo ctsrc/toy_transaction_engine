@@ -108,9 +108,6 @@ in case the same transaction is disputed again by the user.
 
 If a current dispute cannot be found then we return an error indicating this.
 
-(Meanwhile, if a dispute is found then it also means that the transaction still exists,
-so we don't need to have an error type for a situation where transaction does not exist.)
-
 (As with disputes, user id must match, and is handled because we include the user id
 in the key that we look up dispute by.)
 
@@ -118,13 +115,10 @@ in the key that we look up dispute by.)
 
 When a transaction gets chargeback, the user shall not be able to dispute the same transaction
 again as the amount has been sent back to their third party bank account. Therefore, we forget
-about the dispute and the transaction after chargeback has been processed.
+about the dispute (and therefore also the transaction itself) after chargeback has been processed.
 
 If a current dispute cannot be found when processing a chargeback
 then we return an error indicating this.
-
-(As with resolves, if a dispute is found then the transaction still exists, and
-we don't need to have an error type for a situation where transaction does not exist.)
 
 (As with disputes and resolves, user id must match, and is handled because we include the user id
 in the key that we look up dispute by.)
@@ -140,6 +134,27 @@ the implementation itself should also be correct. Transactions are processed
 serially in the order that they are read, with the code currently being
 single threaded, and we use `std::collections::HashMap` for the deposits
 and disputes that we want to remember, as well as for the accounts.
+
+#### State of transactions
+
+State of past transactions is handled by maintaining two collections of transactions;
+deposit transactions and dispute transactions. When a valid deposit transaction is
+received, we remember the transaction for as long as we do not yet see a valid
+dispute for the transaction.
+
+When a transaction is disputed, we remove the transaction from our collection
+of deposit transactions and put an entry for the transaction in our collection
+of disputed transactions.
+
+When a dispute is resolved, we remove the transaction from our collection of
+disputed transactions and put an entry for it back in the collection of
+deposit transactions, in case the transaction is disputed again in the future.
+
+When a dispute is charged back, we remove the transaction from our collection of
+disputed transactions, and we then forget about the transaction as it cannot
+be disputed again in the future after it has been charged back.
+
+#### Multithreading
 
 After finishing the single threaded version of the program I will have
 a look at splitting up the work across the logical CPU cores of the host

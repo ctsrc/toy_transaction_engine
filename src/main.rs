@@ -88,16 +88,25 @@ struct Args {
 fn main () -> anyhow::Result<()>
 {
     let args = Args::parse();
+    let final_account_data = process_transactions_from_csv(args.csv_input_file)?;
+    for acc in final_account_data {
+        println!("{:?}", acc);
+    }
+    Ok(())
+}
+
+fn process_transactions_from_csv<P: AsRef<std::path::Path>> (path: P) -> anyhow::Result<crate::tx_processing::Accounts>
+{
+    let transaction_processor = crate::tx_processing::TransactionProcessor::new();
 
     let mut rdr = csv::ReaderBuilder::new()
-      .trim(csv::Trim::All)
-      .from_path(args.csv_input_file)?;
+    .trim(csv::Trim::All)
+    .from_path(path)?;
     let mut raw_record = csv::StringRecord::new();
     let headers = rdr.headers()?.clone();
     while rdr.read_record(&mut raw_record)? {
         let record: csv_input::TransactionCSVRecord = raw_record.deserialize(Some(&headers))?;
-        println!("{:?}", record);
     }
 
-    Ok(())
+    Ok(transaction_processor.into())
 }
