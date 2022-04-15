@@ -35,10 +35,10 @@
 //! use transaction_engine::{TransactionProcessor, ClientId, TransactionId, Accounts};
 //!
 //! let mut transaction_processor = TransactionProcessor::new();
+//!
 //! let client_a = ClientId::from(1u16);
 //! let amount_1 = "1.5000000000001".try_into().unwrap();
 //! let tx_1 = TransactionId::from(1u32);
-//!
 //! let tx_2 = TransactionId::from(2u32);
 //! // XXX: Precision of fractional part is four digits as per spec.
 //! //      Fifth digit and onwards will be "chopped off", without rounding.
@@ -50,33 +50,55 @@
 //! //let amount_2 = "0.250099999999999999999999".try_into().unwrap();
 //! let amount_2 = "0.25009".try_into().unwrap();
 //!
-//! transaction_processor.deposit(&client_a, &tx_1, amount_1);
-//! transaction_processor.withdraw(&client_a, &tx_2, amount_2);
+//! transaction_processor.deposit(client_a, tx_1, amount_1).unwrap();
+//! transaction_processor.withdraw(client_a, tx_2, amount_2).unwrap();
 //!
+//! // After processing the above two transactions, we expect to find that
+//! // there is record of a single account, belonging to client_a. We expect that
+//! // this account is not frozen, that the amount available on the account
+//! // should have string representation equal to "1.2500", and that the held
+//! // amount on the account should have string representation
+//! // equal to "0.0000".
 //! let accounts: Accounts = transaction_processor.into();
-//!
-//! assert!(accounts.len() == 1);
+//! assert_eq!(accounts.len(), 1);
+//! let (client_id_ret, acc_a) = accounts.into_iter().next().unwrap();
+//! assert_eq!(client_id_ret, client_a);
+//! assert!(!acc_a.is_frozen());
+//! assert_eq!(acc_a.get_available().to_string(), "1.2500");
+//! assert_eq!(acc_a.get_held().to_string(), "0.0000");
 //! ```
 
 use std::collections::HashMap;
+use std::fmt::Formatter;
 
-use derive_more::{Add, Display, From};
+use derive_more::{Add, Display, From, Sub};
 use serde::Deserialize;
 use thiserror::Error;
 
 /// Client ID is represented by u16 integer as per spec.
-#[derive(Deserialize, Debug, Display, From)]
+#[derive(Deserialize, Debug, Display, From, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
-#[derive(Deserialize, Debug, Display, From)]
+#[derive(Deserialize, Debug, Display, From, Copy, Clone)]
 pub struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
 /// and outputs. Therefore, we represent the amount internally as integer fractional
 /// amounts of 1/10,000ths (one ten thousands) of the i/o amount unit.
-#[derive(Debug, Add, From)]
-pub struct FractionalAmount(u64);
+///
+/// We use signed integers because even though deposits and withdrawals themselves
+/// are not allowed to be negative, the available amount and the total amount on
+/// an account can become negative, as explained in the main readme file.
+#[derive(Debug, Add, From, Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Sub)]
+pub struct FractionalAmount(i64);
+
+impl std::fmt::Display for FractionalAmount {
+  fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
+  {
+    write!(f, "{}.{:04}", self.0 / 10_000, self.0 % 10_000)
+  }
+}
 
 /// Turns a string like `"321.54689498498549"` into a [FractionalAmount]
 /// with 4 digits of precision for fractional portion as per spec.
@@ -94,13 +116,13 @@ impl TryInto<FractionalAmount> for &str {
     // XXX: The unwrap below is fine because even with an empty string,
     //      the first call to next() will return Some(&str).
     let decimal_portion = splitter.next().unwrap();
-    let decimal_portion_amount = decimal_portion.parse::<u64>()
+    let decimal_portion_amount = decimal_portion.parse::<i64>()
       .map_err(|e| FractionalAmountParseError::DecimalPortionParseIntError(e))?;
     let mut fractional_portion_amount = 0;
     if let Some(fractional_portion) = splitter.next() {
       let mut magnitude = 1_000;
       for digit in fractional_portion.chars() {
-        let digit = digit.to_digit(10).ok_or(FractionalAmountParseError::NonDigitInFractionalPortion)? as u64;
+        let digit = digit.to_digit(10).ok_or(FractionalAmountParseError::NonDigitInFractionalPortion)? as i64;
         if magnitude > 1 {
           fractional_portion_amount += digit * magnitude;
           magnitude /= 10;
@@ -127,10 +149,26 @@ pub enum FractionalAmountParseError {
 }
 
 /// Contains the account data for a single user.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Account {
   available_amount: FractionalAmount,
   held_amount: FractionalAmount,
+  frozen: bool,
+}
+
+impl Account {
+  pub fn is_frozen (&self) -> bool {
+    self.frozen
+  }
+  pub fn get_available (&self) -> FractionalAmount {
+    self.available_amount
+  }
+  pub fn get_held (&self) -> FractionalAmount {
+    self.held_amount
+  }
+  pub fn get_total (&self) -> FractionalAmount {
+    self.available_amount + self.held_amount
+  }
 }
 
 /// Contains the accounts of all users for which we have processed valid transactions.
@@ -175,26 +213,40 @@ impl TransactionProcessor {
     }
   }
   /// Credit to client's account.
-  pub fn deposit (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount)
+  pub fn deposit (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount) -> Result<(), TransactionDepositError>
   {
+    if amount.0 < 0 {
+      return Err(TransactionDepositError::CannotDepositANegativeAmount);
+    }
+    let account = self.accounts.entry(client_id).or_insert_with(|| Default::default());
+    account.available_amount = account.available_amount + amount;
+    Ok(())
   }
   /// Debit to client's account.
-  pub fn withdraw (&mut self, client_id: &ClientId, transaction_id: &TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
+  pub fn withdraw (&mut self, client_id: ClientId, transaction_id: TransactionId, amount: FractionalAmount) -> Result<(), TransactionWithdrawError>
   {
+    if amount.0 < 0 {
+      return Err(TransactionWithdrawError::CannotWithdrawANegativeAmount);
+    }
+    let account = self.accounts.entry(client_id).or_insert_with(|| Default::default());
+    if account.available_amount < amount {
+      return Err(TransactionWithdrawError::InsufficientAmountAvailableForWithdrawal);
+    }
+    account.available_amount = account.available_amount - amount;
     Ok(())
   }
   /// Claim that referenced transaction was erroneous and should be reversed.
-  pub fn dispute (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionDisputeError>
+  pub fn dispute (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionDisputeError>
   {
     Ok(())
   }
   /// A resolution to a dispute.
-  pub fn resolve (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionResolveError>
+  pub fn resolve (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionResolveError>
   {
     Ok(())
   }
   /// Final state of a dispute.
-  pub fn chargeback (&mut self, client_id: &ClientId, transaction_id: &TransactionId) -> Result<(), TransactionChargebackError>
+  pub fn chargeback (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionChargebackError>
   {
     Ok(())
   }
@@ -210,7 +262,18 @@ impl Into<Accounts> for TransactionProcessor {
 
 /// Errors returned by [TransactionProcessor::withdraw].
 #[derive(Error, Debug)]
+pub enum TransactionDepositError {
+  #[error("Cannot deposit a negative amount")]
+  CannotDepositANegativeAmount,
+}
+
+/// Errors returned by [TransactionProcessor::withdraw].
+#[derive(Error, Debug)]
 pub enum TransactionWithdrawError {
+  #[error("Cannot withdraw a negative amount")]
+  CannotWithdrawANegativeAmount,
+  #[error("Insufficient amount available for withdrawal")]
+  InsufficientAmountAvailableForWithdrawal,
 }
 
 /// Errors returned by [TransactionProcessor::dispute].

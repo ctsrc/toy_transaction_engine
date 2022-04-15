@@ -46,27 +46,32 @@ fn main () -> anyhow::Result<()>
     //      Errors in transactions themselves are logged to stderr
     //      and processing continues.
     match tx {
-      Transaction::Deposit(amount) => transaction_processor.deposit(&client_id, &transaction_id, amount),
-      Transaction::Withdrawal(amount) => {
-        let tx_result = transaction_processor.withdraw(&client_id, &transaction_id, amount);
+      Transaction::Deposit(amount) => {
+        let tx_result = transaction_processor.deposit(client_id, transaction_id, amount);
         if let Err(e) = tx_result {
-          eprintln!("Error during processing of tx {} for client {}: {:?}", transaction_id, client_id, e);
+          eprintln!("Error during processing of deposit tx {} for client {}: {:?}", transaction_id, client_id, e);
+        }
+      },
+      Transaction::Withdrawal(amount) => {
+        let tx_result = transaction_processor.withdraw(client_id, transaction_id, amount);
+        if let Err(e) = tx_result {
+          eprintln!("Error during processing of withdrawal tx {} for client {}: {:?}", transaction_id, client_id, e);
         }
       },
       Transaction::Dispute => {
-        let tx_result = transaction_processor.dispute(&client_id, &transaction_id);
+        let tx_result = transaction_processor.dispute(client_id, transaction_id);
         if let Err(e) = tx_result {
           eprintln!("Error during processing of dispute for tx {} for client {}: {:?}", transaction_id, client_id, e);
         }
       },
       Transaction::Resolve => {
-        let tx_result = transaction_processor.resolve(&client_id, &transaction_id);
+        let tx_result = transaction_processor.resolve(client_id, transaction_id);
         if let Err(e) = tx_result {
           eprintln!("Error during processing of resolve for tx {} for client {}: {:?}", transaction_id, client_id, e);
         }
       },
       Transaction::Chargeback => {
-        let tx_result = transaction_processor.chargeback(&client_id, &transaction_id);
+        let tx_result = transaction_processor.chargeback(client_id, transaction_id);
         if let Err(e) = tx_result {
           eprintln!("Error during processing of chargeback for tx {} for client {}: {:?}", transaction_id, client_id, e);
         }
