@@ -1,4 +1,5 @@
-//! This module forms the core of the transaction processing.
+//! This module forms the core of the transaction processing
+//! for the toy transaction engine command.
 //!
 //! In a production system we could imagine that this portion of the code
 //! was running across a fleet of servers, with each server handling transactions
