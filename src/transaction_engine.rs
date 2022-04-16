@@ -114,6 +114,32 @@
 //! assert_eq!(acc_a.get_available().to_string(), "1.2500");
 //! assert_eq!(acc_a.get_held().to_string(), "0.0000");
 //! ```
+//!
+//! ### Chargeback
+//!
+//! ```
+//! use transaction_engine::{TransactionProcessor, ClientId, TransactionId, Accounts};
+//!
+//! let mut transaction_processor = TransactionProcessor::new();
+//!
+//! let client_a = ClientId::from(1u16);
+//! let amount_1 = "1.5".try_into().unwrap();
+//! let tx_1 = TransactionId::from(1u32);
+//! let tx_2 = TransactionId::from(2u32);
+//! let amount_2 = "0.25".try_into().unwrap();
+//!
+//! transaction_processor.deposit(client_a, tx_1, amount_1).unwrap();
+//! transaction_processor.withdraw(client_a, tx_2, amount_2).unwrap();
+//! transaction_processor.dispute(client_a, tx_1).unwrap();
+//! transaction_processor.chargeback(client_a, tx_1).unwrap();
+//!
+//! let accounts: Accounts = transaction_processor.into();
+//! let (_, acc_a) = accounts.into_iter().next().unwrap();
+//! assert_eq!(acc_a.get_available().to_string(), "-0.2500");
+//! assert_eq!(acc_a.get_held().to_string(), "0.0000");
+//! assert_eq!(acc_a.get_total().to_string(), "-0.2500");
+//! assert!(acc_a.is_frozen());
+//! ```
 
 use std::collections::HashMap;
 use std::fmt::Formatter;
@@ -277,7 +303,9 @@ impl TransactionProcessor {
       return Err(TransactionWithdrawError::CannotWithdrawANegativeAmount);
     }
     let account = self.accounts.entry(client_id).or_insert_with(|| Default::default());
-    if account.available_amount < amount {
+    if account.frozen {
+      return Err(TransactionWithdrawError::CannotWithdrawFromFrozenAccount);
+    } else if account.available_amount < amount {
       return Err(TransactionWithdrawError::InsufficientAmountAvailableForWithdrawal);
     }
     account.available_amount = account.available_amount - amount;
@@ -312,6 +340,12 @@ impl TransactionProcessor {
   /// Final state of a dispute.
   pub fn chargeback (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionChargebackError>
   {
+    let k = (client_id, transaction_id);
+    let chargeback_amount = self.dispute_transactions.remove(&k).ok_or(TransactionChargebackError::ReferencedTransactionNotUnderDisputeForSpecifiedClient)?;
+    // XXX: Unwrap for the account is fine for same reason as in Self::dispute.
+    let acc = self.accounts.get_mut(&client_id).unwrap();
+    acc.held_amount = acc.held_amount - chargeback_amount;
+    acc.frozen = true;
     Ok(())
   }
 }
@@ -336,6 +370,8 @@ pub enum TransactionDepositError {
 pub enum TransactionWithdrawError {
   #[error("Cannot withdraw a negative amount")]
   CannotWithdrawANegativeAmount,
+  #[error("Cannot withdraw from frozen account")]
+  CannotWithdrawFromFrozenAccount,
   #[error("Insufficient amount available for withdrawal")]
   InsufficientAmountAvailableForWithdrawal,
 }
@@ -350,11 +386,13 @@ pub enum TransactionDisputeError {
 /// Errors returned by [TransactionProcessor::resolve].
 #[derive(Error, Debug)]
 pub enum TransactionResolveError {
-  #[error("Referenced transaction not not under dispute for specified client")]
+  #[error("Referenced transaction not under dispute for specified client")]
   ReferencedTransactionNotUnderDisputeForSpecifiedClient,
 }
 
 /// Errors returned by [TransactionProcessor::chargeback].
 #[derive(Error, Debug)]
 pub enum TransactionChargebackError {
+  #[error("Referenced transaction not under dispute for specified client")]
+  ReferencedTransactionNotUnderDisputeForSpecifiedClient,
 }
