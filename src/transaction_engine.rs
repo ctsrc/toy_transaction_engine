@@ -67,7 +67,31 @@
 //! assert_eq!(acc_a.get_available().to_string(), "1.2500");
 //! assert_eq!(acc_a.get_held().to_string(), "0.0000");
 //! ```
+//!
+//! ### Dispute
+//!
+//! ```
+//! use transaction_engine::{TransactionProcessor, ClientId, TransactionId, Accounts};
+//!
+//! let mut transaction_processor = TransactionProcessor::new();
+//!
+//! let client_a = ClientId::from(1u16);
+//! let amount_1 = "1.5".try_into().unwrap();
+//! let tx_1 = TransactionId::from(1u32);
+//! let tx_2 = TransactionId::from(2u32);
+//! let amount_2 = "0.25".try_into().unwrap();
+//!
+//! transaction_processor.deposit(client_a, tx_1, amount_1).unwrap();
+//! transaction_processor.withdraw(client_a, tx_2, amount_2).unwrap();
+//! transaction_processor.dispute(client_a, tx_1).unwrap();
+//!
+//! let accounts: Accounts = transaction_processor.into();
+//! let (_, acc_a) = accounts.into_iter().next().unwrap();
+//! assert_eq!(acc_a.get_available().to_string(), "-0.2500");
+//! assert_eq!(acc_a.get_held().to_string(), "1.5000");
+//! ```
 
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::fmt::Formatter;
 
@@ -80,7 +104,7 @@ use thiserror::Error;
 pub struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
-#[derive(Deserialize, Debug, Display, From, Copy, Clone)]
+#[derive(Deserialize, Debug, Display, From, Copy, Clone, Hash, Eq, PartialEq)]
 pub struct TransactionId(u32);
 
 /// Transaction amount is precise to four places past the decimal point in inputs
@@ -96,7 +120,7 @@ pub struct FractionalAmount(i64);
 impl std::fmt::Display for FractionalAmount {
   fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result
   {
-    write!(f, "{}.{:04}", self.0 / 10_000, self.0 % 10_000)
+    write!(f, "{}{}.{:04}", if self.0 >= 0 {""} else {"-"}, (self.0 / 10_000).abs(), (self.0 % 10_000).abs())
   }
 }
 
@@ -220,6 +244,7 @@ impl TransactionProcessor {
     }
     let account = self.accounts.entry(client_id).or_insert_with(|| Default::default());
     account.available_amount = account.available_amount + amount;
+    self.deposit_transactions.insert((client_id, transaction_id), amount);
     Ok(())
   }
   /// Debit to client's account.
@@ -238,6 +263,15 @@ impl TransactionProcessor {
   /// Claim that referenced transaction was erroneous and should be reversed.
   pub fn dispute (&mut self, client_id: ClientId, transaction_id: TransactionId) -> Result<(), TransactionDisputeError>
   {
+    let k = (client_id, transaction_id);
+    let disputed_amount = self.deposit_transactions.remove(&k).ok_or(TransactionDisputeError::ReferencedTransactionNotFoundForSpecifiedClient)?;
+    // XXX: The unwrap for the account is fine because we have found the deposit transaction,
+    //      and because we create accounts when we process deposits that means that
+    //      an account for the client exists for sure :)
+    let acc = self.accounts.get_mut(&client_id).unwrap();
+    acc.available_amount = acc.available_amount - disputed_amount;
+    acc.held_amount = acc.held_amount + disputed_amount;
+    self.dispute_transactions.insert(k, disputed_amount);
     Ok(())
   }
   /// A resolution to a dispute.
@@ -279,6 +313,8 @@ pub enum TransactionWithdrawError {
 /// Errors returned by [TransactionProcessor::dispute].
 #[derive(Error, Debug)]
 pub enum TransactionDisputeError {
+  #[error("Referenced transaction not found for specified client")]
+  ReferencedTransactionNotFoundForSpecifiedClient,
 }
 
 /// Errors returned by [TransactionProcessor::resolve].
