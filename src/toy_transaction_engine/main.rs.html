@@ -93,6 +93,15 @@
 <span id="88">88</span>
 <span id="89">89</span>
 <span id="90">90</span>
+<span id="91">91</span>
+<span id="92">92</span>
+<span id="93">93</span>
+<span id="94">94</span>
+<span id="95">95</span>
+<span id="96">96</span>
+<span id="97">97</span>
+<span id="98">98</span>
+<span id="99">99</span>
 </pre><pre class="rust"><code><span class="doccomment">//! # Toy Transaction Engine</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! This is a toy transaction engine that demonstrates basic reading of transaction data</span>
@@ -112,6 +121,15 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The code in the main source file for the command line binary</span>
 <span class="doccomment">//! connects these modules and packages together.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! CSV input and output errors, including errors during parsing of CSV input,</span>
+<span class="doccomment">//! are considered fatal and will result in termination of the program.</span>
+<span class="doccomment">//!</span>
+<span class="doccomment">//! When processing transactions, syntactically valid transactions</span>
+<span class="doccomment">//! that specify invalid operations are reported as errors but are</span>
+<span class="doccomment">//! not considered fatal and processing of the remaining transactions</span>
+<span class="doccomment">//! will continue. These types of errors are reported to `stderr`</span>
+<span class="doccomment">//! by the command-line utility.</span>
 
 <span class="kw">use</span> <span class="ident">clap::Parser</span>;
 
