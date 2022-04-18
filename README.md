@@ -20,6 +20,10 @@ and view it in your browser, run the following command:
 cargo doc --open
 ```
 
+A current copy of the generated docs is deployed with GitHub Actions after each
+push to the main branch of the toy transaction engine repository, and is available
+at https://ctsrc.github.io/toy_transaction_engine/
+
 Besides the doc string annotations in the source, there are some relevant details
 in this readme as well. In particular, the following sections of this readme
 provides important information and context about the assumptions and the
