@@ -72,8 +72,7 @@ cargo run -- transactions.csv > accounts.csv
 ```
 
 The resulting output redirected to `accounts.csv` from the command above
-will look like the following once the implementation of the program
-is complete.
+looks like the following:
 
 ```csv
 client,available,held,total,locked
