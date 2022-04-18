@@ -50,8 +50,9 @@ In addition to the assumptions listed in the spec, I am making some further assu
 7. A frozen account is also still able to dispute, resolve and chargeback.
 
 Assumption 4 requires some explanation: According to the spec, the dispute process
-goes transaction -> dispute -> resolve -> chargeback. The chargeback, which is the
-final state of a dispute, says that funds that were held have now been withdrawn.
+goes down one of two possible paths; transaction -> dispute -> resolve, or
+transaction -> dispute -> chargeback. The chargeback, which is the final state
+of a dispute, says that funds that were held have now been withdrawn.
 Meanwhile, if the transaction under dispute was itself a withdrawal, and with
 assumption 3 in mind, we are not able to "unwithdraw" money that has been withdrawn.
 
