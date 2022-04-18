@@ -20,9 +20,9 @@ and view it in your browser, run the following command:
 cargo doc --open
 ```
 
-Besides the doc string annotations, this readme also contains some relevant details
-for anyone wanting to read the code. In particular, the following sections of this
-readme provides important information and context about the assumptions and the
+Besides the doc string annotations in the source, there are some relevant details
+in this readme as well. In particular, the following sections of this readme
+provides important information and context about the assumptions and the
 implementation of the code:
 
 * [Assumptions](#assumptions)
