@@ -22,7 +22,8 @@ jobs:
           toolchain: stable
           profile: minimal
           override: true
-      - uses: actions-rs/cargo@v1
+      - name: Run our tests
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --workspace
