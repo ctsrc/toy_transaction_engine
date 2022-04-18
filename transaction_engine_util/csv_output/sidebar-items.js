@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["AccountOutputCSVRecord","Helper struct for serialization of account data to the CSV format specified in the spec."]]});

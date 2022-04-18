@@ -564,12 +564,12 @@
 <span class="kw">use</span> <span class="ident">std::collections::HashMap</span>;
 <span class="kw">use</span> <span class="ident">std::fmt::Formatter</span>;
 
-<span class="kw">use</span> <span class="ident">derive_more</span>::{<span class="ident">Add</span>, <span class="ident">Display</span>, <span class="ident">From</span>, <span class="ident">Sub</span>};
+<span class="kw">use</span> <span class="ident">derive_more</span>::{<span class="ident">Add</span>, <span class="ident">Display</span>, <span class="ident">From</span>, <span class="ident">Sub</span>, <span class="ident">Into</span>};
 <span class="kw">use</span> <span class="ident">serde::Deserialize</span>;
 <span class="kw">use</span> <span class="ident">thiserror::Error</span>;
 
 <span class="doccomment">/// Client ID is represented by u16 integer as per spec.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">From</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>, <span class="ident">Debug</span>, <span class="ident">Display</span>, <span class="ident">From</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Hash</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>, <span class="ident">Into</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ClientId</span>(<span class="ident">u16</span>);
 
 <span class="doccomment">/// Transaction ID is represented by u32 integer as per spec.</span>

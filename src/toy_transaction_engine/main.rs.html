@@ -81,6 +81,18 @@
 <span id="76">76</span>
 <span id="77">77</span>
 <span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
+<span id="87">87</span>
+<span id="88">88</span>
+<span id="89">89</span>
+<span id="90">90</span>
 </pre><pre class="rust"><code><span class="doccomment">//! # Toy Transaction Engine</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! This is a toy transaction engine that demonstrates basic reading of transaction data</span>
@@ -94,6 +106,10 @@
 <span class="doccomment">//!</span>
 <span class="doccomment">//! The transaction processing itself happens in the [transaction_engine] package.</span>
 <span class="doccomment">//!</span>
+<span class="doccomment">//! CSV output happens mainly here in the command-line utility, using a</span>
+<span class="doccomment">//! helper struct from [transaction_engine_util::csv_output] for formatting</span>
+<span class="doccomment">//! the output according to spec.</span>
+<span class="doccomment">//!</span>
 <span class="doccomment">//! The code in the main source file for the command line binary</span>
 <span class="doccomment">//! connects these modules and packages together.</span>
 
@@ -101,6 +117,7 @@
 
 <span class="kw">use</span> <span class="ident">transaction_engine_util::csv_input</span>::{<span class="ident">CSVInputParser</span>, <span class="ident">Transaction</span>};
 <span class="kw">use</span> <span class="ident">transaction_engine</span>::{<span class="ident">TransactionProcessor</span>, <span class="ident">Accounts</span>};
+<span class="kw">use</span> <span class="ident">transaction_engine_util::csv_output::AccountOutputCSVRecord</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Parser</span>)]</span>
 <span class="attribute">#[<span class="ident">clap</span>(<span class="ident">author</span>, <span class="ident">version</span>, <span class="ident">about</span>, <span class="ident">long_about</span> <span class="op">=</span> <span class="prelude-val">None</span>)]</span>
@@ -114,7 +131,6 @@
   <span class="kw">let</span> <span class="ident">csv_parser</span>: <span class="ident">CSVInputParser</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">args</span>.<span class="ident">csv_input_file</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>;
   <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">transaction_processor</span> <span class="op">=</span> <span class="ident">TransactionProcessor::new</span>();
   <span class="kw">for</span> <span class="ident">tx_result</span> <span class="kw">in</span> <span class="ident">csv_parser</span> {
-    <span class="macro">eprintln!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">tx_result</span>);
     <span class="comment">// XXX: We consider failures in CSV parsing to be fatal.</span>
     <span class="kw">let</span> (<span class="ident">client_id</span>, <span class="ident">transaction_id</span>, <span class="ident">tx</span>) <span class="op">=</span> <span class="ident">tx_result</span><span class="question-mark">?</span>;
     <span class="comment">// XXX: Transactions themselves are allowed to error as per spec.</span>
@@ -154,9 +170,17 @@
     }
   }
   <span class="kw">let</span> <span class="ident">final_account_data</span>: <span class="ident">Accounts</span> <span class="op">=</span> <span class="ident">transaction_processor</span>.<span class="ident">into</span>();
+  <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">wtr</span> <span class="op">=</span> <span class="ident">csv::Writer::from_writer</span>(<span class="ident">std::io::stdout</span>());
   <span class="kw">for</span> (<span class="ident">client_id</span>, <span class="ident">account</span>) <span class="kw">in</span> <span class="ident">final_account_data</span> {
-    <span class="macro">println!</span>(<span class="string">&quot;{} {:?}&quot;</span>, <span class="ident">client_id</span>, <span class="ident">account</span>);
+    <span class="ident">wtr</span>.<span class="ident">serialize</span>(<span class="ident">AccountOutputCSVRecord</span> {
+      <span class="ident">client</span>: <span class="ident">client_id</span>.<span class="ident">into</span>(),
+      <span class="ident">available</span>: <span class="ident">account</span>.<span class="ident">get_available</span>().<span class="ident">to_string</span>(),
+      <span class="ident">held</span>: <span class="ident">account</span>.<span class="ident">get_held</span>().<span class="ident">to_string</span>(),
+      <span class="ident">total</span>: <span class="ident">account</span>.<span class="ident">get_total</span>().<span class="ident">to_string</span>(),
+      <span class="ident">locked</span>: <span class="ident">account</span>.<span class="ident">is_frozen</span>(),
+    })<span class="question-mark">?</span>;
   }
+  <span class="ident">wtr</span>.<span class="ident">flush</span>()<span class="question-mark">?</span>;
   <span class="prelude-val">Ok</span>(())
 }
 </code></pre></div>
