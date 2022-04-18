@@ -1,6 +1,6 @@
 [package]
 name = "toy_transaction_engine"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 
 [[bin]]
@@ -16,5 +16,6 @@ members = [
 [dependencies]
 anyhow = "1.0.56"
 clap = { version = "3.1.8", features = ["derive"] }
+csv = "1.1.6"
 transaction_engine = { path = "transaction_engine" }
 transaction_engine_util = { path = "transaction_engine_util" }

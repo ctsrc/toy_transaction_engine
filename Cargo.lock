@@ -327,17 +327,18 @@ dependencies = [
 
 [[package]]
 name = "toy_transaction_engine"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "anyhow",
  "clap",
+ "csv",
  "transaction_engine",
  "transaction_engine_util",
 ]
 
 [[package]]
 name = "transaction_engine"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "derive_more",
  "serde",
@@ -346,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "transaction_engine_util"
-version = "0.5.1"
+version = "0.6.0"
 dependencies = [
  "csv",
  "serde",

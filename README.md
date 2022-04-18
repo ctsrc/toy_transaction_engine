@@ -10,6 +10,8 @@ The spec itself is not public, but I was told to make the repository public.
 * Command-line utility resides in [`src/main.rs`](src/main.rs).
 * CSV input parsing happens in [`transaction_engine_util/src/csv_input.rs`](transaction_engine_util/src/csv_input.rs).
 * Transaction processing happens in [`transaction_engine/src/lib.rs`](transaction_engine/src/lib.rs).
+* For CSV output, there is a single struct in [`transaction_engine_util/src/csv_output.rs`](transaction_engine_util/src/csv_output.rs)
+  which is used in the command-line utilitity when it serializes CSV output with the [csv](https://crates.io/crates/csv) crate.
 
 ## Documentation
 
@@ -75,8 +77,8 @@ is complete.
 
 ```csv
 client,available,held,total,locked
-2,2,0,2,false
-1,1.5,0,1.5,false
+2,2.0000,0.0000,2.0000,false
+1,1.5000,0.0000,1.5000,false
 ```
 
 Note that as per the spec, the rows of data in the output is

@@ -11,6 +11,10 @@
 //!
 //! The transaction processing itself happens in the [transaction_engine] package.
 //!
+//! CSV output happens mainly here in the command-line utility, using a
+//! helper struct from [transaction_engine_util::csv_output] for formatting
+//! the output according to spec.
+//!
 //! The code in the main source file for the command line binary
 //! connects these modules and packages together.
 
@@ -18,6 +22,7 @@ use clap::Parser;
 
 use transaction_engine_util::csv_input::{CSVInputParser, Transaction};
 use transaction_engine::{TransactionProcessor, Accounts};
+use transaction_engine_util::csv_output::AccountOutputCSVRecord;
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -31,7 +36,6 @@ fn main () -> anyhow::Result<()>
   let csv_parser: CSVInputParser<_> = args.csv_input_file.try_into()?;
   let mut transaction_processor = TransactionProcessor::new();
   for tx_result in csv_parser {
-    eprintln!("{:?}", tx_result);
     // XXX: We consider failures in CSV parsing to be fatal.
     let (client_id, transaction_id, tx) = tx_result?;
     // XXX: Transactions themselves are allowed to error as per spec.
@@ -71,8 +75,16 @@ fn main () -> anyhow::Result<()>
     }
   }
   let final_account_data: Accounts = transaction_processor.into();
+  let mut wtr = csv::Writer::from_writer(std::io::stdout());
   for (client_id, account) in final_account_data {
-    println!("{} {:?}", client_id, account);
+    wtr.serialize(AccountOutputCSVRecord {
+      client: client_id.into(),
+      available: account.get_available().to_string(),
+      held: account.get_held().to_string(),
+      total: account.get_total().to_string(),
+      locked: account.is_frozen(),
+    })?;
   }
+  wtr.flush()?;
   Ok(())
 }

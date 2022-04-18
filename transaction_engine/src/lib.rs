@@ -145,12 +145,12 @@
 use std::collections::HashMap;
 use std::fmt::Formatter;
 
-use derive_more::{Add, Display, From, Sub};
+use derive_more::{Add, Display, From, Sub, Into};
 use serde::Deserialize;
 use thiserror::Error;
 
 /// Client ID is represented by u16 integer as per spec.
-#[derive(Deserialize, Debug, Display, From, Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Deserialize, Debug, Display, From, Copy, Clone, Hash, Eq, PartialEq, Into)]
 pub struct ClientId(u16);
 
 /// Transaction ID is represented by u32 integer as per spec.
