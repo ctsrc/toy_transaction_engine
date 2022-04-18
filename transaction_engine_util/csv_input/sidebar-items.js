@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CSVInputParserError","Errors which can occur when parsing CSV raw records into [Transaction]s using [CSVInputParser]."],["Transaction","Transaction type and, in the case of deposits and withdrawals, the amount for the transaction."]],"struct":[["CSVInputParser","Parses data from CSV file into corresponding [Transaction] variants."]]});
