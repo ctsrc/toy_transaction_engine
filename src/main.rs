@@ -17,9 +17,6 @@
 //! helper struct from [transaction_engine_util::csv_output] for formatting
 //! the output according to spec.
 //!
-//! The code in the main source file for the command line binary
-//! connects these modules and packages together.
-//!
 //! CSV input and output errors, including errors during parsing of CSV input,
 //! are considered fatal and will result in termination of the program.
 //!
