@@ -17,6 +17,15 @@
 //!
 //! The code in the main source file for the command line binary
 //! connects these modules and packages together.
+//!
+//! CSV input and output errors, including errors during parsing of CSV input,
+//! are considered fatal and will result in termination of the program.
+//!
+//! When processing transactions, syntactically valid transactions
+//! that specify invalid operations are reported as errors but are
+//! not considered fatal and processing of the remaining transactions
+//! will continue. These types of errors are reported to `stderr`
+//! by the command-line utility.
 
 use clap::Parser;
 
