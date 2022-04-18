@@ -9,7 +9,7 @@ The spec itself is not public, but I was told to make the repository public.
 
 * Command-line utility resides in [`src/main.rs`](src/main.rs).
 * CSV input parsing happens in [`transaction_engine_util/src/csv_input.rs`](transaction_engine_util/src/csv_input.rs).
-* Transaction processing happens in [`transaction_engine/lib.rs`](transaction_engine/lib.rs).
+* Transaction processing happens in [`transaction_engine/src/lib.rs`](transaction_engine/src/lib.rs).
 
 ## Documentation
 
