@@ -1,4 +1,4 @@
-name: Run tests and generate and deploy docs to GitHub Pages
+name: Generate and deploy docs to GitHub Pages
 
 on:
   push:
@@ -7,26 +7,6 @@ on:
   pull_request:
 
 jobs:
-  test:
-    name: Run all tests
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-          fetch-depth: 0
-      - name: Install Rust toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - name: Run our tests
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace
   deploy:
     name: Generate and deploy docs
     runs-on: ubuntu-20.04
