@@ -1,4 +1,5 @@
-//! This package provides transaction processing for the toy transaction engine
+//! This package provides transaction processing for the
+//! [toy transaction engine](https://github.com/ctsrc/toy_transaction_engine)
 //! command-line tool, or for any other crate that might wish to use it.
 //!
 //! In a production system we could imagine that this crate was in use by sofware

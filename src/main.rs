@@ -4,8 +4,10 @@
 //! from a CSV file and processing the transactions listed in the input according to
 //! a specification document.
 //!
-//! Be sure to check out the main readme file in the repository as well. Said readme has
-//! some high-level details about the implementation, and it also details some assumptions.
+//! Be sure to check out the [main readme](https://github.com/ctsrc/toy_transaction_engine#readme)
+//! file in the [repository](https://github.com/ctsrc/toy_transaction_engine) as well.
+//! Said readme has some high-level details about the implementation, and it also details
+//! some assumptions.
 //!
 //! Input of CSV data is handled in the [transaction_engine_util::csv_input] module.
 //!
