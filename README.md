@@ -5,7 +5,49 @@ that was handed to me by someone for implementation.
 
 The spec itself is not public, but I was told to make the repository public.
 
-## Usage example
+## Code Organization Overview
+
+* Command-line utility resides in [`src/main.rs`](src/main.rs).
+* CSV input parsing happens in [`transaction_engine_util/src/csv_input.rs`](transaction_engine_util/src/csv_input.rs).
+* Transaction processing happens in [`transaction_engine/lib.rs`](transaction_engine/lib.rs).
+
+## Documentation
+
+The code in this repository is annotated with doc strings. To generate documentation
+and view it in your browser, run the following command:
+
+```zsh
+cargo doc --open
+```
+
+Besides the doc string annotations, this readme also contains some relevant details
+for anyone wanting to read the code. In particular, the following sections of this
+readme provides important information and context about the assumptions and the
+implementation of the code:
+
+* [Assumptions](#assumptions)
+* [Implementation](#implementation)
+  - [Handling of cases](#handling-of-cases)
+    * [Withdrawals](#withdrawals)
+    * [Deposits](#deposits)
+    * [Disputes](#disputes)
+    * [Resolves](#resolves)
+    * [Chargebacks](#chargebacks)
+  - [Correctness](#correctness)
+    * [State of transactions](#state-of-transactions)
+    * [Multithreading](#multithreading)
+
+## Running Tests
+
+A number of tests are included with this program and its parts.
+
+To run the tests for all parts of the code in this repository, run:
+
+```zsh
+cargo test --workspace
+```
+
+## Command-line Usage Example
 
 The toy transaction engine takes a single argument, which is the path to a CSV file
 containing transactions. The program writes its output in CSV format to `stdout`.

@@ -1,0 +1,10 @@
+[package]
+name = "transaction_engine_util"
+version = "0.5.0"
+edition = "2021"
+
+[dependencies]
+csv = "1.1.6"
+serde = { version = "1.0.136", features = ["derive"] }
+thiserror = "1.0.30"
+transaction_engine = { path = "../transaction_engine" }

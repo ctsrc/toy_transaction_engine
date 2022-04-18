@@ -1,9 +1,9 @@
-//! This module forms the core of the transaction processing
-//! for the toy transaction engine command.
+//! This package provides transaction processing for the toy transaction engine
+//! command-line tool, or for any other crate that might wish to use it.
 //!
-//! In a production system we could imagine that this portion of the code
-//! was running across a fleet of servers, with each server handling transactions
-//! for individual shards of the users. This would work quite straightforward
+//! In a production system we could imagine that this crate was in use by sofware
+//! running across a fleet of servers, with each server handling transactions
+//! for individual shards of users. This would work quite straightforward
 //! for the current toy spec as the types of transactions we are concerned about
 //! are per individual user and never between one user and the other. In theory
 //! then, if our toy code was to be deployed to a fleet of servers, we could
@@ -11,10 +11,9 @@
 //!
 //! Beyond the toy spec though, something that would become a concern over time
 //! is balancing users across the fleet of servers. Certainly there is a lot
-//! that would need to be considered. I'm eager to talk about that as well,
-//! as I have some thoughts about it and much to learn about it.
+//! that would need to be considered.
 //!
-//! Going further beyond the toy spec, there would certainly need to be
+//! Going even further beyond the toy spec, there would certainly need to be
 //! all kinds of interaction between the transaction processing and other
 //! systems, and things would quickly become much more complex.
 //!
@@ -23,7 +22,9 @@
 //! The following shows some basic examples of processing transactions
 //! using this module.
 //!
-//! These examples run as doc tests with `cargo test`.
+//! These examples also run as doc tests with `cargo test --workspace`
+//! when said command is executed in the toy transaction engine
+//! repository root.
 //!
 //! In these examples, unwrap is used in order to keep the code short
 //! and also because we want the doc tests to fail except where the
@@ -177,10 +178,25 @@ impl std::fmt::Display for FractionalAmount {
 /// with 4 digits of precision for fractional portion as per spec.
 ///
 /// In the case of a string like `"321.54689498498549"`, the value of
-/// the [FractionalAmount] will be `3215468`.
+/// the FractionalAmount will be `3215468`, which if converted into
+/// a string will be equal to `"321.5468"`.
 ///
 /// The full string is read in order to ensure that no non-digits
 /// are present in the input.
+///
+/// ## Examples
+///
+/// ```
+/// use transaction_engine::FractionalAmount;
+/// let amount: FractionalAmount = "321.54689498498549".try_into().unwrap();
+/// assert_eq!(amount.to_string(), "321.5468");
+/// ```
+///
+/// ```
+/// # use transaction_engine::FractionalAmount;
+/// let amount: FractionalAmount = "25".try_into().unwrap();
+/// assert_eq!(amount.to_string(), "25.0000");
+/// ```
 impl TryInto<FractionalAmount> for &str {
   type Error = FractionalAmountParseError;
   fn try_into (self) -> Result<FractionalAmount, Self::Error>

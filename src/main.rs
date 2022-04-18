@@ -4,28 +4,20 @@
 //! from a CSV file and processing the transactions listed in the input according to
 //! a specification document.
 //!
-//! The comments in the source code for this toy transaction engine are meant to detail
-//! my thinking and reasoning around the requirements, as well as to explain why I'm making
-//! some of the choices I am making in implementing it. As such there is quite a bit
-//! of details in the comments that extend beyond what I would usually include if this
-//! had been code for a production code base.
-//!
 //! Be sure to check out the main readme file in the repository as well. Said readme has
-//! some high-level details about the implementation.
+//! some high-level details about the implementation, and it also details some assumptions.
 //!
-//! Input of CSV data is handled in the [csv_input] module.
+//! Input of CSV data is handled in the [transaction_engine_util::csv_input] module.
 //!
-//! The transaction processing itself happens in the [transaction_engine] module.
+//! The transaction processing itself happens in the [transaction_engine] package.
 //!
-//! The code in the main file connects these modules together.
-//!
-//! - Erik N., Wednesday April 13th 2022
+//! The code in the main source file for the command line binary
+//! connects these modules and packages together.
 
 use clap::Parser;
-use crate::csv_input::Transaction;
 
-pub mod transaction_engine;
-pub mod csv_input;
+use transaction_engine_util::csv_input::{CSVInputParser, Transaction};
+use transaction_engine::{TransactionProcessor, Accounts};
 
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -36,8 +28,8 @@ struct Args {
 fn main () -> anyhow::Result<()>
 {
   let args = Args::parse();
-  let csv_parser: csv_input::CSVInputParser = args.csv_input_file.try_into()?;
-  let mut transaction_processor = transaction_engine::TransactionProcessor::new();
+  let csv_parser: CSVInputParser<_> = args.csv_input_file.try_into()?;
+  let mut transaction_processor = TransactionProcessor::new();
   for tx_result in csv_parser {
     eprintln!("{:?}", tx_result);
     // XXX: We consider failures in CSV parsing to be fatal.
@@ -78,7 +70,7 @@ fn main () -> anyhow::Result<()>
       },
     }
   }
-  let final_account_data: transaction_engine::Accounts = transaction_processor.into();
+  let final_account_data: Accounts = transaction_processor.into();
   for (client_id, account) in final_account_data {
     println!("{} {:?}", client_id, account);
   }

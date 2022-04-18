@@ -3,18 +3,18 @@ name = "toy_transaction_engine"
 version = "0.5.0"
 edition = "2021"
 
-[lib]
-name = "transaction_engine"
-path = "src/transaction_engine.rs"
-
 [[bin]]
-name = "toy_transaction_engine_command"
 path = "src/main.rs"
+name = "toy_transaction_engine"
+
+[workspace]
+members = [
+  "transaction_engine",
+  "transaction_engine_util",
+]
 
 [dependencies]
 anyhow = "1.0.56"
 clap = { version = "3.1.8", features = ["derive"] }
-csv = "1.1.6"
-derive_more = "0.99.17"
-serde = { version = "1.0.136", features = ["derive"] }
-thiserror = "1.0.30"
+transaction_engine = { path = "transaction_engine" }
+transaction_engine_util = { path = "transaction_engine_util" }

@@ -1,0 +1,9 @@
+[package]
+name = "transaction_engine"
+version = "0.5.0"
+edition = "2021"
+
+[dependencies]
+derive_more = "0.99.17"
+serde = { version = "1.0.136", features = ["derive"] }
+thiserror = "1.0.30"

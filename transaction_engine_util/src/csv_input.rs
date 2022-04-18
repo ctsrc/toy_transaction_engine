@@ -3,7 +3,7 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::transaction_engine::{ClientId, TransactionId, FractionalAmount};
+use transaction_engine::{ClientId, TransactionId, FractionalAmount};
 
 /// Transaction record as it appears in CSV inputs.
 ///
@@ -24,7 +24,7 @@ pub(crate) struct TransactionCSVRecord<'a> {
   /// The amount, where applicable, for the transaction.
   ///
   /// At the stage of reading the CSV record data we are not yet parsing
-  /// the amounts into our [FractionalAmount] type.
+  /// the amounts into our [transaction_engine::FractionalAmount] type.
   ///
   /// We borrow the string for this field from the CSV reader, as opposed
   /// to using owned String, as the latter would cause additional allocation
@@ -57,14 +57,14 @@ enum TransactionType {
 /// in this instance I feel that this way of doing it is easier to read and involves
 /// less code than implementing serde deserialization for the individual
 /// types of row data directly.
-pub(crate) struct CSVInputParser {
-  rdr: csv::Reader<std::fs::File>,
+pub struct CSVInputParser<R: std::io::Read> {
+  rdr: csv::Reader<R>,
   headers: csv::StringRecord,
 }
 
-impl TryInto<CSVInputParser> for String {
+impl TryInto<CSVInputParser<std::fs::File>> for String {
   type Error = csv::Error;
-  fn try_into (self) -> Result<CSVInputParser, Self::Error>
+  fn try_into (self) -> Result<CSVInputParser<std::fs::File>, Self::Error>
   {
     let mut rdr = csv::ReaderBuilder::new()
       .trim(csv::Trim::All)
@@ -77,7 +77,7 @@ impl TryInto<CSVInputParser> for String {
   }
 }
 
-impl CSVInputParser {
+impl<R: std::io::Read> CSVInputParser<R> {
   /// Parses a raw CSV record into a transaction.
   pub(crate) fn parse_raw_record(&self, raw_record: csv::StringRecord) -> Result<(ClientId, TransactionId, Transaction), CSVInputParserError> {
     let record = raw_record.deserialize::<TransactionCSVRecord>(Some(&self.headers)).map_err(|e| CSVInputParserError::Csv(e))?;
@@ -117,7 +117,7 @@ impl CSVInputParser {
   }
 }
 
-impl Iterator for CSVInputParser {
+impl<R: std::io::Read> Iterator for CSVInputParser<R> {
   type Item = Result<(ClientId, TransactionId, Transaction), CSVInputParserError>;
   fn next (&mut self) -> Option<Self::Item>
   {
@@ -138,7 +138,7 @@ impl Iterator for CSVInputParser {
 
 /// Transaction type and, in the case of deposits and withdrawals, the amount for the transaction.
 #[derive(Debug)]
-pub(crate) enum Transaction {
+pub enum Transaction {
   Deposit(FractionalAmount),
   Withdrawal(FractionalAmount),
   Dispute,
@@ -146,17 +146,15 @@ pub(crate) enum Transaction {
   Chargeback,
 }
 
-/// Errors returned by [CSVInputParser::parse_raw_record] and
-/// also forwarded by [CSVInputParser::next] inside of the [Option]
-/// returned by the latter.
+/// Errors which can occur when parsing CSV raw records into [Transaction]s using [CSVInputParser].
 #[derive(Error, Debug)]
-pub(crate) enum CSVInputParserError {
+pub enum CSVInputParserError {
   #[error("CSV error")]
   Csv(#[from] csv::Error),
   #[error("Deposit must specify amount")]
   DepositMustSpecifyAmount,
   #[error("Failed to parse amount")]
-  AmountParseError(#[from] crate::transaction_engine::FractionalAmountParseError),
+  AmountParseError(#[from] transaction_engine::FractionalAmountParseError),
   #[error("Withdrawal must specify amount")]
   WithdrawalMustSpecifyAmount,
   #[error("Dispute cannot specify amount")]
